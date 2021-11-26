@@ -1,0 +1,25 @@
+name: Deploy
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - master
+
+jobs:
+  deploy-development:
+    runs-on: ubuntu-latest
+    name: Deploy to Development
+    env:
+      HEROKU_APP_NAME: aminpaks
+      HEROKU_API_KEY: ${{ secrets.HEROKU_API_KEY }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2
+
+      - name: Build Image
+        run: |
+          echo $HEROKU_API_KEY | docker login -u ${{ secrets.HEROKU_LOGIN }} registry.heroku.com --password-stdin
+          docker build --build-arg commit_hash=${{ github.sha }} --tag registry.heroku.com/${HEROKU_APP_NAME}/web .
+          docker push registry.heroku.com/${HEROKU_APP_NAME}/web
+          heroku container:release web --app ${HEROKU_APP_NAME}
