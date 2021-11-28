@@ -33,7 +33,7 @@ func UserConsumer() xredis.StreamConsumerFunc {
 				return fmt.Errorf("failed to process, random number '%f'", rnd)
 			} else {
 				// if this is the last try we must return nil and log what happened
-				log.Printf("failed to process entry on %d tries by consumer %s, last error: %v - value: %s", entry.Retries, consumerId, lastError, serializedValue)
+				log.Printf("failed to process entry on %d tries, reference: %s, last error: %v - value: %s", entry.Retries, entry.Id, lastError, serializedValue)
 				return nil
 			}
 		}
