@@ -1,6 +1,7 @@
 package h
 
 import (
+	"log"
 	"net/http"
 )
 
@@ -13,9 +14,12 @@ func NewH(fn HandleFn) http.HandlerFunc {
 
 		renderer := fn(dw, r)
 		err := renderer(dw)
-		if err != nil && !dw.done {
-			dw.WriteHeader(http.StatusInternalServerError)
-			dw.Write([]byte(`Something is wrong!`))
+		if err != nil {
+			if !dw.done {
+				dw.WriteHeader(http.StatusInternalServerError)
+				dw.Write([]byte(`Something is wrong!`))
+			}
+			log.Fatalf("failed to write to response: %v", err)
 		}
 	})
 }

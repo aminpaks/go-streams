@@ -37,7 +37,6 @@ func RegisterConsumer(ctx context.Context, streamName string, groupName string, 
 	for consumerCounter <= options.Counts {
 		consumerId := uuid.New().String()
 		go func() {
-			log.Printf("Consumer %s running on stream '%s'", consumerId, streamName)
 			for {
 				entries, err := client.XReadGroup(&redis.XReadGroupArgs{
 					Group:    groupName,

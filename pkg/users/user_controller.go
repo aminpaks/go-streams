@@ -11,6 +11,7 @@ import (
 
 	"github.com/aminpaks/go-streams/pkg/global"
 	"github.com/aminpaks/go-streams/pkg/h"
+	"github.com/aminpaks/go-streams/pkg/merrors"
 	"github.com/aminpaks/go-streams/pkg/re"
 	"github.com/aminpaks/go-streams/pkg/xredis"
 )
@@ -50,6 +51,9 @@ func (us *UserController) HandleCreate(rw http.ResponseWriter, r *http.Request) 
 	user, err := ParseUserWithOptionalId(body)
 	if err != nil {
 		return re.Json(http.StatusBadRequest, re.BuildJsonErrors(fmt.Errorf("invalid request payload: %v", err)))
+	}
+	if err := user.Validate(); err != nil {
+		return re.Json(http.StatusBadRequest, merrors.BuildErrorsOrElse(err))
 	}
 
 	ref, err := xredis.StreamAppend(global.DependencyContext, "usersTest", user.WithId(uuid.New()).String())
