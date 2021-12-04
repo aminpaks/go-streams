@@ -2,7 +2,6 @@ package svr
 
 import (
 	"context"
-	"errors"
 	"log"
 	"net/http"
 	"os"
@@ -33,7 +32,7 @@ func New(depsCtx context.Context, port string) {
 	})
 
 	router.NotFound(h.New(func(rw http.ResponseWriter, r *http.Request) h.Renderer {
-		return re.Json(http.StatusNotFound, re.BuildJsonErrors(errors.New("not found")))
+		return re.Json(http.StatusNotFound, re.JsonErrors(re.ToJsonErrors("Not found")...))
 	}))
 
 	srv := &http.Server{

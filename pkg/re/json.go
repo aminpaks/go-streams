@@ -3,6 +3,7 @@ package re
 import (
 	"encoding/json"
 	"net/http"
+	"strings"
 
 	"github.com/aminpaks/go-streams/pkg/h"
 )
@@ -29,17 +30,40 @@ func Json(status int, v interface{}) h.Renderer {
 	})
 }
 
-func BuildJsonErrors(errs ...error) interface{} {
-	list := []interface{}{}
+func JsonErrors(errs ...JsonObj) interface{} {
+	return JsonObj{
+		"errors": errs,
+	}
+}
+
+func ToJsonError(err interface{}) JsonObj {
+	switch v := err.(type) {
+	case error:
+		return JsonObj{"message": capitalizeFirstLetter(v.Error())}
+	case string:
+		return JsonObj{"message": v}
+	case []byte:
+		return JsonObj{"message": string(v)}
+	case JsonObj:
+		return v
+	default:
+	}
+	return JsonObj{"message": "Unknown"}
+}
+
+func ToJsonErrors(errs ...interface{}) []JsonObj {
+	list := []JsonObj{}
 	for _, err := range errs {
 		if err != nil {
-			list = append(list, map[string]string{
-				"message": err.Error(),
-			})
+			list = append(list, ToJsonError(err))
 		}
 	}
+	return list
+}
 
-	return map[string]interface{}{
-		"errors": list,
+func capitalizeFirstLetter(i string) string {
+	if len(i) > 1 {
+		return strings.ToUpper(i[0:1]) + i[1:]
 	}
+	return i
 }

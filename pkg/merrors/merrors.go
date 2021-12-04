@@ -1,6 +1,10 @@
 package merrors
 
-import "encoding/json"
+import (
+	"encoding/json"
+
+	"github.com/aminpaks/go-streams/pkg/re"
+)
 
 type Errorable interface {
 	ErrorDetail() interface{}
@@ -35,7 +39,7 @@ func (me *Merrors) Add(err error) *Merrors {
 	return me
 }
 
-func (me *Merrors) AddCustom(err interface{}) *Merrors {
+func (me *Merrors) AddCustom(err re.JsonObj) *Merrors {
 	me.errors = append(me.errors, err)
 	return me
 }
@@ -54,15 +58,15 @@ func getError(i interface{}) string {
 	}
 }
 
-func BuildErrorsOrElse(err error) interface{} {
+func ErrorsOrElse(err error) []re.JsonObj {
+	var errs []re.JsonObj
 	switch v := err.(type) {
 	case *Merrors:
-		return map[string]interface{}{
-			"errors": v.errors,
-		}
+		errs = re.ToJsonErrors(v.errors...)
 	case error:
-		return v.Error()
+		errs = re.ToJsonErrors(v)
 	default:
-		return "unknown error"
+		errs = re.ToJsonErrors("Unknown error")
 	}
+	return errs
 }

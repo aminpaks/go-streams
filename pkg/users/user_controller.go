@@ -55,21 +55,21 @@ func (us *UserController) HandleGet(rw http.ResponseWriter, r *http.Request) h.R
 func (us *UserController) HandleCreate(rw http.ResponseWriter, r *http.Request) h.Renderer {
 	body, err := ioutil.ReadAll(r.Body)
 	if err != nil {
-		return re.Json(http.StatusInternalServerError, re.BuildJsonErrors(fmt.Errorf("failed to read request body")))
+		return re.Json(http.StatusInternalServerError, re.JsonErrors(re.ToJsonError("Failed to read request body")))
 	}
 
 	user, err := ParseUserWithOptionalId(body)
 	if err != nil {
-		return re.Json(http.StatusBadRequest, re.BuildJsonErrors(fmt.Errorf("invalid request payload: %v", err)))
+		return re.Json(http.StatusBadRequest, re.JsonErrors(re.ToJsonError(fmt.Sprintf("Invalid request payload: %v", err))))
 	}
 	if err := user.Validate(); err != nil {
-		return re.Json(http.StatusBadRequest, merrors.BuildErrorsOrElse(err))
+		return re.Json(http.StatusBadRequest, re.JsonErrors(merrors.ErrorsOrElse(err)...))
 	}
 
 	ref, err := xredis.StreamAppend(us.depsCtx, "usersTest", user.WithId(uuid.New()).String())
 	if err != nil {
 		log.Printf("failed to append entry to stream: %v", err)
-		return re.Json(http.StatusInternalServerError, re.BuildJsonErrors(fmt.Errorf("failed to process request")))
+		return re.Json(http.StatusInternalServerError, re.JsonErrors(re.ToJsonError("Failed to process request")))
 	}
 
 	return re.Json(http.StatusOK, re.JsonObj{
