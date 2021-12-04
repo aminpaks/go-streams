@@ -8,7 +8,7 @@ import (
 type HandleFn func(rw http.ResponseWriter, r *http.Request) Renderer
 type Renderer func(rw http.ResponseWriter) error
 
-func NewH(fn HandleFn) http.HandlerFunc {
+func New(fn HandleFn) http.HandlerFunc {
 	return http.HandlerFunc(func(rw http.ResponseWriter, r *http.Request) {
 		dw := doneWriter{rw, false}
 
@@ -19,7 +19,7 @@ func NewH(fn HandleFn) http.HandlerFunc {
 				dw.WriteHeader(http.StatusInternalServerError)
 				dw.Write([]byte(`Something is wrong!`))
 			}
-			log.Fatalf("failed to write to response: %v", err)
+			log.Printf("failed to write to response: %v", err)
 		}
 	})
 }

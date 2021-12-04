@@ -1,6 +1,7 @@
 package users
 
 import (
+	"context"
 	"fmt"
 	"io/ioutil"
 	"log"
@@ -9,20 +10,19 @@ import (
 	"github.com/go-chi/chi/v5"
 	"github.com/google/uuid"
 
-	"github.com/aminpaks/go-streams/pkg/global"
 	"github.com/aminpaks/go-streams/pkg/h"
 	"github.com/aminpaks/go-streams/pkg/merrors"
 	"github.com/aminpaks/go-streams/pkg/re"
 	"github.com/aminpaks/go-streams/pkg/xredis"
 )
 
-func NewUserController(r chi.Router) error {
-	controller := &UserController{}
-	r.Post("/", h.NewH(controller.HandleCreate))
-	r.Get("/", h.NewH(controller.HandleList))
-	r.Get("/{userName}", h.NewH(controller.HandleGet))
+func NewUserController(depsCtx context.Context, r chi.Router) error {
+	controller := &UserController{depsCtx: depsCtx}
+	r.Post("/", h.New(controller.HandleCreate))
+	r.Get("/", h.New(controller.HandleList))
+	r.Get("/{userId}", h.New(controller.HandleGet))
 
-	err := xredis.RegisterConsumer(global.DependencyContext, "usersTest", "registerUsers", UserConsumer(), xredis.NewStreamConsumerOptions(2, 3))
+	err := xredis.RegisterConsumer(depsCtx, "usersTest", "registerUsers", userCreationConsumer(), xredis.NewStreamConsumerOptions(2, 3))
 	if err != nil {
 		return fmt.Errorf("RegisterConsumer: %v", err)
 	}
@@ -31,15 +31,25 @@ func NewUserController(r chi.Router) error {
 }
 
 type UserController struct {
+	depsCtx    context.Context
 	OnCreation func(user User)
 }
 
 func (us *UserController) HandleList(rw http.ResponseWriter, r *http.Request) h.Renderer {
-	return re.Json(http.StatusNotImplemented, re.BuildJsonMessage("Not implemented yet!"))
+	return re.Json(
+		http.StatusNotImplemented,
+		re.JsonObj{
+			"data": re.JsonObj{"message": "Not implemented yet!"},
+		},
+	)
 }
 
 func (us *UserController) HandleGet(rw http.ResponseWriter, r *http.Request) h.Renderer {
-	return re.Json(http.StatusNotImplemented, re.BuildJsonMessage("Not implemented yet!"))
+	return re.Json(
+		http.StatusNotImplemented,
+		re.JsonObj{
+			"data": re.JsonObj{"message": "Not implemented!"},
+		})
 }
 
 func (us *UserController) HandleCreate(rw http.ResponseWriter, r *http.Request) h.Renderer {
@@ -56,11 +66,16 @@ func (us *UserController) HandleCreate(rw http.ResponseWriter, r *http.Request) 
 		return re.Json(http.StatusBadRequest, merrors.BuildErrorsOrElse(err))
 	}
 
-	ref, err := xredis.StreamAppend(global.DependencyContext, "usersTest", user.WithId(uuid.New()).String())
+	ref, err := xredis.StreamAppend(us.depsCtx, "usersTest", user.WithId(uuid.New()).String())
 	if err != nil {
-		log.Fatalf("failed to append entry to stream: %v", err)
+		log.Printf("failed to append entry to stream: %v", err)
 		return re.Json(http.StatusInternalServerError, re.BuildJsonErrors(fmt.Errorf("failed to process request")))
 	}
 
-	return re.Json(http.StatusOK, re.BuildJsonMessage("User will be created shortly, reference: %v", ref))
+	return re.Json(http.StatusOK, re.JsonObj{
+		"data": re.JsonObj{
+			"message":   "User will be created shortly",
+			"reference": ref,
+		},
+	})
 }

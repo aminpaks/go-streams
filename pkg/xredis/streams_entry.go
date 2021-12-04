@@ -10,9 +10,9 @@ import (
 const entrySerializedElementKey = "serializedEntryElement"
 
 type XStreamEntry struct {
+	maxRetries int
 	Id         uuid.UUID `json:"id"`
 	LastError  string    `json:"lastError"`
-	MaxRetries int       `json:"maxRetries"`
 	Retries    int       `json:"retries"`
 	Value      string    `json:"value"`
 }
@@ -30,12 +30,12 @@ func (se *XStreamEntry) WithIncreaseTries() *XStreamEntry {
 }
 
 func (se *XStreamEntry) withMaxRetries(v int) *XStreamEntry {
-	se.MaxRetries = v
+	se.maxRetries = v
 	return se
 }
 
 func (se *XStreamEntry) IsLastTry() bool {
-	return se.Retries >= se.MaxRetries
+	return se.Retries >= se.maxRetries
 }
 
 func (se *XStreamEntry) WithError(err string) *XStreamEntry {
@@ -45,11 +45,10 @@ func (se *XStreamEntry) WithError(err string) *XStreamEntry {
 
 func newStreamEntry(id uuid.UUID, element string, retries int, lastError string) *XStreamEntry {
 	return &XStreamEntry{
-		Id:         id,
-		Retries:    retries,
-		MaxRetries: 1, // Will be always '1' on creation, consumer will set the max retries
-		Value:      element,
-		LastError:  lastError,
+		Id:        id,
+		Retries:   retries,
+		Value:     element,
+		LastError: lastError,
 	}
 }
 

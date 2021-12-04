@@ -2,11 +2,12 @@ package re
 
 import (
 	"encoding/json"
-	"fmt"
 	"net/http"
 
 	"github.com/aminpaks/go-streams/pkg/h"
 )
+
+type JsonObj map[string]interface{}
 
 func internalRenderJson(rw http.ResponseWriter, status int, v interface{}) error {
 	b, err := json.Marshal(v)
@@ -40,11 +41,5 @@ func BuildJsonErrors(errs ...error) interface{} {
 
 	return map[string]interface{}{
 		"errors": list,
-	}
-}
-
-func BuildJsonMessage(msg string, v ...interface{}) interface{} {
-	return map[string]interface{}{
-		"message": fmt.Sprintf(msg, v...),
 	}
 }

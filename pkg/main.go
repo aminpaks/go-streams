@@ -4,14 +4,13 @@ import (
 	"context"
 
 	"github.com/aminpaks/go-streams/pkg/env"
-	"github.com/aminpaks/go-streams/pkg/global"
 	"github.com/aminpaks/go-streams/pkg/svr"
 	"github.com/aminpaks/go-streams/pkg/xredis"
 )
 
 func main() {
 	// Initialization of context for dependencies
-	global.DependencyContext = context.Background()
+	dependencyContext := context.Background()
 
 	// Instantiate Redis client
 	rdb, err := xredis.NewClient(env.Get("REDIS_URL", "redis://localhost:6379"))
@@ -19,8 +18,8 @@ func main() {
 		panic(err)
 	}
 	defer rdb.Close()
-	global.DependencyContext = xredis.SetClientContext(global.DependencyContext, rdb)
+	dependencyContext = xredis.SetClientContext(dependencyContext, rdb)
 
 	// Serving API
-	svr.New(env.Get("PORT", "3100"))
+	svr.New(dependencyContext, env.Get("PORT", "3100"))
 }

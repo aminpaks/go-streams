@@ -18,7 +18,7 @@ import (
 	"github.com/aminpaks/go-streams/pkg/users"
 )
 
-func New(port string) {
+func New(depsCtx context.Context, port string) {
 	router := chi.NewRouter()
 
 	router.Use(mw.RequestLog)
@@ -26,13 +26,13 @@ func New(port string) {
 	router.Use(mw.Recoverer)
 
 	router.Route("/users", func(r chi.Router) {
-		err := users.NewUserController(r)
+		err := users.NewUserController(depsCtx, r)
 		if err != nil {
 			log.Fatalf("failed to initialize user controller: %v", err)
 		}
 	})
 
-	router.NotFound(h.NewH(func(rw http.ResponseWriter, r *http.Request) h.Renderer {
+	router.NotFound(h.New(func(rw http.ResponseWriter, r *http.Request) h.Renderer {
 		return re.Json(http.StatusNotFound, re.BuildJsonErrors(errors.New("not found")))
 	}))
 

@@ -8,7 +8,7 @@ import (
 	"github.com/aminpaks/go-streams/pkg/xredis"
 )
 
-func UserConsumer() xredis.StreamConsumerFunc {
+func userCreationConsumer() xredis.StreamConsumerFunc {
 	return func(entry xredis.XStreamEntry, consumerId string) error {
 		serializedValue := entry.Value
 		isLastTry := entry.IsLastTry()
