@@ -9,7 +9,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/go-redis/redis"
+	"github.com/go-redis/redis/v8"
 	"github.com/google/uuid"
 )
 
@@ -19,7 +19,7 @@ type StreamConsumerFunc func(entry XStreamEntry, consumerId string) error
 var ErrStreamConsumer = errors.New("stream consumer")
 var ErrStreamAppend = errors.New("failed to append")
 
-func RegisterConsumer(ctx context.Context, streamName string, groupName string, consumerFn StreamConsumerFunc, options *StreamConsumerOptions) error {
+func RegisterStreamConsumer(ctx context.Context, streamName string, groupName string, consumerFn StreamConsumerFunc, options *StreamConsumerOptions) error {
 	// Get the Redis client from dependency context
 	client, err := GetClient(ctx)
 	if err != nil {
@@ -38,7 +38,8 @@ func RegisterConsumer(ctx context.Context, streamName string, groupName string, 
 		go func() {
 			consumerId := uuid.New().String()
 			for {
-				entries, err := client.XReadGroup(&redis.XReadGroupArgs{
+				ctx := context.Background()
+				entries, err := client.XReadGroup(ctx, &redis.XReadGroupArgs{
 					Group:    groupName,
 					Consumer: consumerId,
 					Streams:  []string{streamName, ">"},
@@ -49,14 +50,14 @@ func RegisterConsumer(ctx context.Context, streamName string, groupName string, 
 				if err != nil {
 					// NOGROUP is returned when the group doesn't exists
 					if strings.Contains(err.Error(), "NOGROUP") {
-						if b, err := client.SetNX(fmt.Sprintf("stream-[%s]-creation-lock", streamName), consumerId, time.Second*1).Result(); err != nil {
+						if b, err := client.SetNX(ctx, fmt.Sprintf("stream-[%s]-creation-lock", streamName), consumerId, time.Second*1).Result(); err != nil {
 							log.Printf("consumer %s waiting for lock", consumerId)
 							continue
 						} else if !b {
 							time.Sleep(time.Second * 1)
 							continue
 						}
-						err = client.XGroupCreateMkStream(streamName, groupName, "0").Err()
+						err = client.XGroupCreateMkStream(ctx, streamName, groupName, "0").Err()
 						// BUSYGROUP is returned when the group already exists
 						// this error can happend if there are multiple consumers
 						if err != nil {
@@ -75,7 +76,7 @@ func RegisterConsumer(ctx context.Context, streamName string, groupName string, 
 					for i := range entries[0].Messages {
 						message := &entries[0].Messages[i]
 						messageID := message.ID
-						err = client.XAck(streamName, groupName, messageID).Err()
+						err = client.XAck(ctx, streamName, groupName, messageID).Err()
 						if err != nil {
 							log.Printf("failed to ack stream entry %s: %v", messageID, err)
 						}
@@ -118,7 +119,7 @@ func internalStreamAppend(depsCtx context.Context, streamName string, values map
 		return fmt.Errorf("%w: %v", ErrStreamAppend, err)
 	}
 
-	err = client.XAdd(&redis.XAddArgs{
+	err = client.XAdd(context.Background(), &redis.XAddArgs{
 		Stream:       streamName,
 		MaxLen:       0,
 		MaxLenApprox: 0,
@@ -146,19 +147,4 @@ func ParseList(v []byte) []string {
 	list := []string{}
 	_ = json.Unmarshal(v, &list)
 	return list
-}
-
-func Lock(c *redis.Client, key string) (release func() error) {
-	for {
-		if b, err := c.SetNX(key, "LOCK", time.Hour*999).Result(); err != nil || !b {
-			continue
-		}
-		break
-	}
-	return func() error {
-		if _, err := c.Del(key).Result(); err != nil {
-			return fmt.Errorf("failed to release lock '%s'", key)
-		}
-		return nil
-	}
 }

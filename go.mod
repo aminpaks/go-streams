@@ -8,8 +8,7 @@ require (
 	github.com/alicebob/miniredis/v2 v2.16.1
 	github.com/go-chi/chi/v5 v5.0.7
 	github.com/go-redis/redis v6.15.9+incompatible
-	github.com/go-redis/redis/v8 v8.11.4 // indirect
-	github.com/go-redis/redismock/v8 v8.0.6
+	github.com/go-redis/redis/v8 v8.11.4
 	github.com/golang/mock v1.6.0
 	github.com/google/uuid v1.3.0
 	github.com/kr/pretty v0.1.0 // indirect

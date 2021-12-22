@@ -5,10 +5,8 @@ import (
 	"errors"
 	"fmt"
 
-	"github.com/go-redis/redis"
+	"github.com/go-redis/redis/v8"
 )
-
-type ContextKeyType string
 
 const RedisClientContext = ContextKeyType("_RedisClient")
 
@@ -20,8 +18,9 @@ func NewClient(redisUrl string) (*redis.Client, error) {
 		return nil, fmt.Errorf("%w: %v", ErrRedisConnect, err)
 	}
 
+	ctx := context.Background()
 	client := redis.NewClient(clientOpt)
-	_, err = client.Ping().Result()
+	_, err = client.Ping(ctx).Result()
 	if err != nil {
 		return nil, fmt.Errorf("%w: %v", ErrRedisConnect, err)
 	}
@@ -29,7 +28,7 @@ func NewClient(redisUrl string) (*redis.Client, error) {
 	return client, nil
 }
 
-func GetClient(ctx context.Context) (*redis.Client, error) {
+func GetClient(ctx context.Context) (*RedisClient, error) {
 	if client, ok := ctx.Value(RedisClientContext).(*redis.Client); ok {
 		return client, nil
 	}
